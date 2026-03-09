@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HireIQ — AI Resume Screener</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;600;700&family=Cabinet+Grotesk:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f5f2ee;
+  --ink: #1a1409;
+  --paper: #fffdf9;
+  --accent: #d4500a;
+  --accent2: #1a6b3c;
+  --accent3: #1a3a6b;
+  --border: #d8d0c4;
+  --muted: #8a7d6e;
+  --tag-bg: #ede8e0;
+  --card: #ffffff;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  min-height: 100vh;
+}
+
+/* Subtle dot pattern */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: radial-gradient(circle, #c4b89a 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.25;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--ink);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 48px;
+}
+
+.logo {
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 700; font-size: 1.5rem;
+  color: #fff; letter-spacing: -0.5px;
+}
+.logo span { color: var(--accent); }
+
+.nav-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase;
+  color: #8a8070; border: 1px solid #3a3020;
+  padding: 5px 14px; border-radius: 2px;
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative; z-index: 1;
+  max-width: 960px; margin: 0 auto;
+  padding: 72px 32px 40px;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 32px; align-items: end;
+}
+
+.hero-left h1 {
+  font-family: 'Clash Display', sans-serif;
+  font-size: clamp(2.6rem, 5.5vw, 4.2rem);
+  font-weight: 700; line-height: 1.05; letter-spacing: -2px;
+  color: var(--ink);
+  opacity: 0; animation: fadeUp .5s ease forwards .1s;
+}
+
+.hero-left h1 mark {
+  background: var(--accent); color: #fff;
+  padding: 0 6px; border-radius: 3px;
+}
+
+.hero-left p {
+  margin-top: 16px; font-size: 1.05rem;
+  color: var(--muted); line-height: 1.65; max-width: 500px;
+  opacity: 0; animation: fadeUp .5s ease forwards .25s;
+}
+
+.hero-stat {
+  text-align: right;
+  opacity: 0; animation: fadeUp .5s ease forwards .4s;
+}
+.stat-big {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 4rem; font-weight: 700; color: var(--accent);
+  line-height: 1;
+}
+.stat-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; color: var(--muted);
+  letter-spacing: 2px; text-transform: uppercase; margin-top: 4px;
+}
+
+/* ── MAIN LAYOUT ── */
+.main {
+  position: relative; z-index: 1;
+  max-width: 960px; margin: 0 auto;
+  padding: 0 32px 80px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 700px) {
+  .main { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr; }
+  .hero-stat { text-align: left; }
+  nav { padding: 16px 20px; }
+}
+
+/* ── PANELS ── */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  opacity: 0; animation: fadeUp .5s ease forwards .5s;
+}
+
+.panel-header {
+  background: var(--ink); color: #fff;
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.panel-icon { font-size: 1rem; }
+.panel-title {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 0.95rem; font-weight: 600; letter-spacing: -0.3px;
+}
+.panel-body { padding: 20px; }
+
+label {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 6px;
+}
+
+textarea, input[type=text] {
+  width: 100%;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 0.95rem; line-height: 1.6;
+  color: var(--ink); padding: 14px;
+  outline: none; resize: vertical;
+  transition: border-color .2s;
+}
+textarea:focus, input:focus { border-color: var(--accent); }
+textarea::placeholder, input::placeholder { color: var(--muted); }
+
+.form-gap { margin-top: 16px; }
+
+/* ── CANDIDATES LIST ── */
+.candidate-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
+.candidate-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 14px;
+}
+.candidate-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem; color: var(--muted);
+  min-width: 20px;
+}
+.candidate-name { font-size: 0.9rem; font-weight: 500; flex: 1; }
+.candidate-del {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 1.1rem; line-height: 1;
+  transition: color .15s;
+}
+.candidate-del:hover { color: var(--accent); }
+
+/* ── BUTTONS ── */
+.btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+.btn-primary {
+  flex: 1; background: var(--accent); color: #fff;
+  border: none; border-radius: 6px; cursor: pointer;
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 600; font-size: 0.95rem; letter-spacing: -0.3px;
+  padding: 13px 20px; transition: all .2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary:hover { background: #b83d00; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,80,10,.3); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-secondary {
+  background: transparent; color: var(--ink);
+  border: 1.5px solid var(--border); border-radius: 6px;
+  cursor: pointer; font-family: 'Cabinet Grotesk', sans-serif;
+  font-weight: 500; font-size: 0.9rem;
+  padding: 13px 18px; transition: all .2s;
+}
+.btn-secondary:hover { border-color: var(--ink); background: var(--tag-bg); }
+
+/* ── ADD CANDIDATE FORM ── */
+.add-form {
+  display: none;
+  margin-top: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px;
+}
+.add-form.open { display: block; animation: fadeUp .25s ease forwards; }
+
+/* ── RESULTS ── */
+.results-panel {
+  grid-column: 1 / -1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+  display: none;
+  opacity: 0; animation: fadeUp .5s ease forwards;
+}
+.results-panel.show { display: block; }
+
+.results-header {
+  background: var(--accent); padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.results-title {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 1.1rem; font-weight: 700; color: #fff;
+}
+.results-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem; color: rgba(255,255,255,.7);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* ── CANDIDATE RESULT CARDS ── */
+.result-grid { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+.result-card {
+  border: 1.5px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+  transition: box-shadow .2s;
+}
+.result-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+
+.result-card.rank-1 { border-color: #d4a017; }
+.result-card.rank-2 { border-color: #8a8a8a; }
+.result-card.rank-3 { border-color: #8a5a2a; }
+
+.rc-top {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 20px; background: var(--paper);
+  flex-wrap: wrap;
+}
+
+.rc-rank {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 1.8rem; font-weight: 700; line-height: 1;
+  min-width: 40px;
+}
+.rank-1 .rc-rank { color: #d4a017; }
+.rank-2 .rc-rank { color: #8a8a8a; }
+.rank-3 .rc-rank { color: #8a5a2a; }
+
+.rc-info { flex: 1; }
+.rc-name {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 1.15rem; font-weight: 600; letter-spacing: -0.3px;
+}
+.rc-edu {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; color: var(--muted);
+  letter-spacing: 1px; text-transform: uppercase; margin-top: 3px;
+}
+
+.rc-score-box { text-align: right; }
+.rc-score-num {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 2rem; font-weight: 700; line-height: 1;
+}
+.score-high { color: var(--accent2); }
+.score-mid  { color: var(--accent);  }
+.score-low  { color: var(--muted);   }
+.rc-score-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem; color: var(--muted);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+/* ── SCORE BARS ── */
+.rc-bars { padding: 14px 20px; border-top: 1px solid var(--border); background: #fff; }
+
+.bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.bar-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem; color: var(--muted);
+  letter-spacing: 1px; text-transform: uppercase;
+  min-width: 80px;
+}
+.bar-track {
+  flex: 1; height: 5px; background: var(--tag-bg);
+  border-radius: 99px; overflow: hidden;
+}
+.bar-fill {
+  height: 100%; border-radius: 99px; width: 0%;
+  transition: width 1.2s cubic-bezier(.4,0,.2,1);
+}
+.fill-a { background: var(--accent2); }
+.fill-b { background: var(--accent3); }
+.fill-c { background: var(--accent);  }
+.bar-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem; min-width: 36px;
+  text-align: right;
+}
+
+/* ── SKILLS ── */
+.rc-skills { padding: 12px 20px; border-top: 1px solid var(--border); }
+.skills-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem; color: var(--muted);
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+}
+.skills-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; padding: 3px 10px;
+  border-radius: 3px; letter-spacing: .5px;
+}
+.stag-match { background: rgba(26,107,60,.1); color: var(--accent2); border: 1px solid rgba(26,107,60,.25); }
+.stag-extra { background: var(--tag-bg); color: var(--muted); border: 1px solid var(--border); }
+
+/* ── AI SUMMARY ── */
+.rc-ai { padding: 14px 20px; border-top: 1px solid var(--border); background: #fffbf5; }
+.ai-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+}
+.ai-text { font-size: 0.9rem; line-height: 1.65; color: #4a3f30; }
+
+/* ── LOADING ── */
+#loading {
+  display: none; grid-column: 1/-1;
+  text-align: center; padding: 48px;
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+.loading-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.78rem; letter-spacing: 2px;
+  color: var(--muted); text-transform: uppercase;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* ── SAMPLE JOBS ── */
+.sample-jobs {
+  position: relative; z-index: 1;
+  max-width: 960px; margin: 0 auto;
+  padding: 0 32px 32px;
+  opacity: 0; animation: fadeUp .5s ease forwards .6s;
+}
+.sj-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem; letter-spacing: 2px; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.sj-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.sj-btn {
+  background: var(--paper); border: 1.5px solid var(--border);
+  border-radius: 6px; padding: 10px 16px; cursor: pointer;
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 0.88rem; font-weight: 500; color: var(--ink);
+  transition: all .2s;
+}
+.sj-btn:hover { border-color: var(--accent); background: #fff8f4; color: var(--accent); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Hire<span>IQ</span></div>
+  <div class="nav-tag">AI Resume Screener</div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <h1>Screen resumes<br>with <mark>AI precision</mark></h1>
+    <p>Paste a job description, add candidate resumes, and let AI rank them instantly — with skill matching, scoring breakdowns, and hiring insights.</p>
+  </div>
+  <div class="hero-stat">
+    <div class="stat-big">10x</div>
+    <div class="stat-sub">Faster Screening</div>
+  </div>
+</section>
+
+<!-- SAMPLE JOB PRESETS -->
+<div class="sample-jobs">
+  <div class="sj-label">Quick-load a sample job</div>
+  <div class="sj-grid">
+    <button class="sj-btn" onclick="loadSample('ds')">📊 Data Scientist</button>
+    <button class="sj-btn" onclick="loadSample('fe')">💻 Frontend Developer</button>
+    <button class="sj-btn" onclick="loadSample('pm')">📋 Product Manager</button>
+    <button class="sj-btn" onclick="loadSample('ml')">🤖 ML Engineer</button>
+  </div>
+</div>
+
+<!-- MAIN PANELS -->
+<div class="main">
+
+  <!-- JD PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">📋</span>
+      <span class="panel-title">Job Description</span>
+    </div>
+    <div class="panel-body">
+      <label>Paste job description</label>
+      <textarea id="jdInput" rows="9" placeholder="e.g. We are looking for a Senior Data Scientist with 4+ years experience in Python, TensorFlow, and cloud platforms…"></textarea>
+    </div>
+  </div>
+
+  <!-- CANDIDATES PANEL -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-icon">👥</span>
+      <span class="panel-title">Candidates</span>
+    </div>
+    <div class="panel-body">
+      <label>Added candidates</label>
+      <div class="candidate-list" id="candidateList">
+        <div style="font-size:.85rem;color:var(--muted);font-style:italic;">No candidates yet — add one below</div>
+      </div>
+
+      <!-- Add candidate form -->
+      <div class="add-form" id="addForm">
+        <label>Candidate Name</label>
+        <input type="text" id="candName" placeholder="e.g. Alice Johnson"/>
+        <div class="form-gap">
+          <label>Resume Text</label>
+          <textarea id="candResume" rows="5" placeholder="Paste the candidate's resume or LinkedIn summary here…"></textarea>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn-primary" onclick="addCandidate()" style="background:var(--accent2);">Add Candidate</button>
+          <button class="btn-secondary" onclick="toggleAddForm()">Cancel</button>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="toggleAddForm()" id="addBtn">+ Add Candidate</button>
+        <button class="btn-secondary" onclick="loadSampleCandidates()">Load Samples</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Analyzing candidates with AI…</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-panel" id="results">
+    <div class="results-header">
+      <span class="results-title">🏆 Candidate Rankings</span>
+      <span class="results-count" id="resultsCount"></span>
+    </div>
+    <div class="result-grid" id="resultGrid"></div>
+  </div>
+
+</div>
+
+<!-- RANK BUTTON — full width below panels -->
+<div style="position:relative;z-index:1;max-width:960px;margin:-8px auto 60px;padding:0 32px;">
+  <button class="btn-primary" onclick="rankCandidates()" id="rankBtn" style="width:100%;padding:18px;font-size:1.05rem;">
+    ⚡ Rank All Candidates with AI
+  </button>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────
+let candidates = [];
+
+// ── Sample data ────────────────────────────────
+const SAMPLES = {
+  ds: {
+    jd: `Senior Data Scientist — 4+ years experience required.
+Skills: Python, TensorFlow or PyTorch, scikit-learn, NLP, deep learning, SQL, pandas, numpy.
+Cloud: AWS or GCP preferred. Masters or PhD a plus.
+Strong communication and leadership skills needed.`,
+    resumes: [
+      { name: "Alice Johnson", text: "Senior Data Scientist, 6 years experience. Python, TensorFlow, PyTorch, scikit-learn, NLP, deep learning, pandas, numpy, SQL, AWS. Masters in CS from MIT. Led team of 4. Great communication and leadership." },
+      { name: "Bob Martinez",  text: "Data Analyst, 3 years. Python, pandas, SQL, Excel, Power BI. Bachelor Statistics. No deep learning background. Some scikit-learn exposure." },
+      { name: "Carol Chen",    text: "ML Engineer 5 years. Python, scikit-learn, TensorFlow, Keras, NLP, computer vision. AWS Docker Kubernetes. PhD AI. Strong analytical skills. SQL MongoDB." },
+      { name: "David Kumar",   text: "Full Stack Developer 4 years. JavaScript React NodeJS Python basic HTML CSS MySQL. Bachelor CS. Learning data science." },
+      { name: "Eva Rossi",     text: "Data Scientist 4 years. Python, pandas, numpy, scikit-learn, matplotlib, NLP, SQL, Tableau. Masters Data Science. GCP certified. Agile. Presented to C-suite." },
+    ]
+  },
+  fe: {
+    jd: `Senior Frontend Developer — 3+ years experience.
+React, TypeScript, CSS, HTML, REST APIs required. Node.js a plus. Agile teamwork.`,
+    resumes: [
+      { name: "Sara Kim",      text: "Frontend Dev 5 years. React TypeScript JavaScript CSS HTML REST API NodeJS. Bachelor CS. Agile scrum. Led UI redesign." },
+      { name: "Tom Wright",    text: "Full Stack 4 years. React JavaScript HTML CSS NodeJS REST API. Bootstrap tailwind. Git CI/CD. Good teamwork." },
+      { name: "Lisa Park",     text: "Data Scientist. Python pandas numpy scikit-learn tensorflow. No frontend experience." },
+      { name: "James Osei",    text: "Junior frontend 1 year. HTML CSS JavaScript basic React learning. Bootstrap." },
+    ]
+  },
+  pm: {
+    jd: `Product Manager — 3+ years in tech products.
+Agile, scrum, roadmap, stakeholder management, data analysis, communication, leadership.`,
+    resumes: [
+      { name: "Nina Patel",    text: "Product Manager 5 years. Agile scrum roadmap stakeholder management A/B testing analytics. MBA. Launched 3 products. Strong leadership communication." },
+      { name: "Carlos Lima",   text: "Software Engineer 4 years. Python Java Docker. No PM background. Some project management." },
+      { name: "Mia Foster",    text: "Associate PM 2 years. Agile roadmap communication data analysis SQL Tableau. Bachelor Business. Good collaboration." },
+    ]
+  },
+  ml: {
+    jd: `ML Engineer — build and deploy machine learning models at scale.
+Python, PyTorch, MLOps, Docker, Kubernetes, AWS, REST API. 3+ years experience.`,
+    resumes: [
+      { name: "Raj Singh",     text: "ML Engineer 4 years. Python PyTorch TensorFlow scikit-learn MLOps Docker Kubernetes AWS REST API. Masters AI. Deployed 10+ models production." },
+      { name: "Anna Kowal",    text: "Data Scientist 3 years. Python scikit-learn pandas statistics. AWS basic. No MLOps experience. Good analytical skills." },
+      { name: "Felix Nguyen",  text: "DevOps Engineer 5 years. Docker Kubernetes AWS CI/CD Jenkins Terraform. Python scripting. No ML background." },
+    ]
+  }
+};
+
+// ── Load sample preset ─────────────────────────
+function loadSample(key) {
+  const s = SAMPLES[key];
+  document.getElementById('jdInput').value = s.jd;
+  candidates = [...s.resumes];
+  renderCandidates();
+  document.getElementById('results').classList.remove('show');
+}
+
+function loadSampleCandidates() {
+  const jd = document.getElementById('jdInput').value;
+  const key = jd.includes('Data Scientist') ? 'ds' : jd.includes('Frontend') ? 'fe' : jd.includes('Product') ? 'pm' : 'ml';
+  candidates = [...SAMPLES[key].resumes];
+  renderCandidates();
+}
+
+// ── Candidates ─────────────────────────────────
+function renderCandidates() {
+  const list = document.getElementById('candidateList');
+  if (candidates.length === 0) {
+    list.innerHTML = '<div style="font-size:.85rem;color:var(--muted);font-style:italic;">No candidates yet — add one below</div>';
+    return;
+  }
+  list.innerHTML = candidates.map((c, i) => `
+    <div class="candidate-item">
+      <span class="candidate-num">#${i+1}</span>
+      <span class="candidate-name">${c.name}</span>
+      <button class="candidate-del" onclick="removeCandidate(${i})" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function removeCandidate(i) {
+  candidates.splice(i, 1);
+  renderCandidates();
+}
+
+function toggleAddForm() {
+  const form = document.getElementById('addForm');
+  form.classList.toggle('open');
+  document.getElementById('addBtn').textContent = form.classList.contains('open') ? '− Cancel' : '+ Add Candidate';
+}
+
+function addCandidate() {
+  const name   = document.getElementById('candName').value.trim();
+  const resume = document.getElementById('candResume').value.trim();
+  if (!name || !resume) { alert('Please enter both name and resume text.'); return; }
+  candidates.push({ name, text: resume });
+  renderCandidates();
+  document.getElementById('candName').value   = '';
+  document.getElementById('candResume').value = '';
+  document.getElementById('addForm').classList.remove('open');
+  document.getElementById('addBtn').textContent = '+ Add Candidate';
+}
+
+// ── Skill taxonomy (mirrors Python backend) ────
+const SKILLS = {
+  programming: ["python","java","javascript","typescript","c++","c#","golang","rust","kotlin","swift","php","ruby","scala","r","matlab","bash","shell"],
+  web:         ["react","angular","vue","nextjs","nodejs","django","flask","fastapi","html","css","sass","tailwind","bootstrap","jquery","graphql","rest api"],
+  data:        ["machine learning","deep learning","nlp","computer vision","tensorflow","pytorch","keras","scikit-learn","pandas","numpy","matplotlib","seaborn","tableau","power bi","data analysis","data science","statistics","sql"],
+  cloud:       ["aws","azure","gcp","docker","kubernetes","terraform","ci/cd","devops","linux","git","jenkins","ansible"],
+  database:    ["mysql","postgresql","mongodb","redis","elasticsearch","cassandra","sqlite","oracle","dynamodb","firebase"],
+  soft:        ["leadership","communication","teamwork","problem solving","agile","scrum","project management","mentoring","collaboration","analytical"],
+};
+const ALL_SKILLS_LIST = Object.values(SKILLS).flat();
+
+function extractSkills(text) {
+  const t = text.toLowerCase();
+  return ALL_SKILLS_LIST.filter(s => {
+    const re = new RegExp('\\b' + s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b');
+    return re.test(t);
+  });
+}
+
+function tfidfSimilarity(a, b) {
+  const tokenize = s => s.toLowerCase().replace(/[^\w\s]/g,' ').split(/\s+/).filter(w => w.length > 2);
+  const docA = tokenize(a), docB = tokenize(b);
+  const vocab = [...new Set([...docA,...docB])];
+  const tf = (doc, word) => doc.filter(w => w === word).length / doc.length;
+  const idf = (word) => Math.log((2 + 1) / (1 + [docA,docB].filter(d => d.includes(word)).length));
+  const vec = (doc) => vocab.map(w => tf(doc,w) * idf(w));
+  const vA = vec(docA), vB = vec(docB);
+  const dot = vA.reduce((s,v,i) => s + v*vB[i], 0);
+  const magA = Math.sqrt(vA.reduce((s,v)=>s+v*v,0));
+  const magB = Math.sqrt(vB.reduce((s,v)=>s+v*v,0));
+  return magA && magB ? dot/(magA*magB) : 0;
+}
+
+function getExpYears(text) {
+  const m = text.match(/(\d+)\+?\s*years?\s+(of\s+)?experience/i);
+  return m ? parseInt(m[1]) : 0;
+}
+
+function getEdu(text) {
+  const t = text.toLowerCase();
+  if (/phd|ph\.d|doctorate/.test(t)) return 'PhD';
+  if (/master|msc|m\.s|m\.tech|mba/.test(t)) return 'Masters';
+  if (/bachelor|bsc|b\.s|b\.tech|b\.e|undergraduate/.test(t)) return 'Bachelors';
+  return 'Not specified';
+}
+
+function scoreResume(resumeText, jdText) {
+  const sim      = tfidfSimilarity(jdText, resumeText);
+  const jdSkills = extractSkills(jdText);
+  const rSkills  = extractSkills(resumeText);
+  const matched  = jdSkills.filter(s => rSkills.includes(s));
+  const skillPct = jdSkills.length ? (matched.length / jdSkills.length) * 100 : 0;
+  const expYears = getExpYears(resumeText);
+  const expScore = Math.min(expYears / 10 * 100, 100);
+  const edu      = getEdu(resumeText);
+  const eduBonus = {PhD:15, Masters:10, Bachelors:5}[edu] || 0;
+  const final    = Math.min(sim*40 + skillPct*0.35 + expScore*0.15 + eduBonus, 100);
+  return { sim: Math.round(sim*100*10)/10, skillPct: Math.round(skillPct*10)/10, matched, allResSkills: rSkills, expYears, edu, final: Math.round(final*10)/10 };
+}
+
+// ── Rank candidates ────────────────────────────
+async function rankCandidates() {
+  const jd = document.getElementById('jdInput').value.trim();
+  if (!jd)             { alert('Please enter a job description first.'); return; }
+  if (candidates.length === 0) { alert('Please add at least one candidate.'); return; }
+
+  const btn     = document.getElementById('rankBtn');
+  const loading = document.getElementById('loading');
+  const results = document.getElementById('results');
+
+  btn.disabled = true;
+  btn.textContent = 'Analyzing…';
+  loading.style.display = 'block';
+  results.classList.remove('show');
+
+  // Local scoring
+  const scored = candidates.map(c => ({ ...c, ...scoreResume(c.text, jd) }))
+    .sort((a,b) => b.final - a.final)
+    .map((c,i) => ({ ...c, rank: i+1 }));
+
+  // AI summaries via Claude API
+  try {
+    const summaryPromises = scored.map(c => getAISummary(c, jd));
+    const summaries = await Promise.all(summaryPromises);
+    summaries.forEach((s,i) => scored[i].aiSummary = s);
+  } catch(e) {
+    scored.forEach(c => c.aiSummary = null);
+  }
+
+  loading.style.display = 'none';
+  btn.disabled = false;
+  btn.textContent = '⚡ Rank All Candidates with AI';
+
+  renderResults(scored, jd);
+}
+
+async function getAISummary(candidate, jd) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1000,
+      system: `You are an expert HR recruiter. Given a candidate's score data and resume, write a 2-sentence hiring recommendation. Be specific about their strengths and gaps. Respond with ONLY a JSON object: {"summary": "your 2-sentence recommendation here"}`,
+      messages: [{ role: "user", content: `Job: ${jd.slice(0,300)}\nCandidate: ${candidate.name}\nResume: ${candidate.text.slice(0,400)}\nScore: ${candidate.final}/100\nMatched skills: ${candidate.matched.join(', ')}` }]
+    })
+  });
+  const data = await res.json();
+  const raw  = data.content.map(b => b.text||'').join('');
+  const clean = raw.replace(/```json|```/g,'').trim();
+  return JSON.parse(clean).summary;
+}
+
+// ── Render results ──────────────────────────────
+function renderResults(ranked, jd) {
+  const jdSkills = extractSkills(jd);
+  const grid = document.getElementById('resultGrid');
+  document.getElementById('resultsCount').textContent = `${ranked.length} candidates ranked`;
+
+  grid.innerHTML = ranked.map(c => {
+    const rankClass = c.rank <= 3 ? `rank-${c.rank}` : '';
+    const medal     = ['🥇','🥈','🥉','4','5','6','7','8','9','10'][c.rank-1] || c.rank;
+    const scoreCls  = c.final >= 65 ? 'score-high' : c.final >= 40 ? 'score-mid' : 'score-low';
+    const matchTags = c.matched.map(s => `<span class="skill-tag stag-match">${s}</span>`).join('');
+    const extraTags = c.allResSkills.filter(s => !c.matched.includes(s)).slice(0,6)
+      .map(s => `<span class="skill-tag stag-extra">${s}</span>`).join('');
+    const aiBlock  = c.aiSummary
+      ? `<div class="rc-ai"><div class="ai-label">AI Recruiter Note</div><div class="ai-text">${c.aiSummary}</div></div>`
+      : '';
+
+    return `
+    <div class="result-card ${rankClass}" data-rank="${c.rank}">
+      <div class="rc-top">
+        <div class="rc-rank">${medal}</div>
+        <div class="rc-info">
+          <div class="rc-name">${c.name}</div>
+          <div class="rc-edu">${c.edu} · ${c.expYears > 0 ? c.expYears + ' yrs exp' : 'Exp not specified'}</div>
+        </div>
+        <div class="rc-score-box">
+          <div class="rc-score-num ${scoreCls}">${c.final}</div>
+          <div class="rc-score-label">/ 100</div>
+        </div>
+      </div>
+      <div class="rc-bars">
+        <div class="bar-row">
+          <span class="bar-label">Text Match</span>
+          <div class="bar-track"><div class="bar-fill fill-a" style="width:0%" data-w="${c.sim}"></div></div>
+          <span class="bar-val">${c.sim}%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">Skill Match</span>
+          <div class="bar-track"><div class="bar-fill fill-b" style="width:0%" data-w="${c.skillPct}"></div></div>
+          <span class="bar-val">${c.skillPct}%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">Overall</span>
+          <div class="bar-track"><div class="bar-fill fill-c" style="width:0%" data-w="${c.final}"></div></div>
+          <span class="bar-val">${c.final}</span>
+        </div>
+      </div>
+      ${(matchTags || extraTags) ? `
+      <div class="rc-skills">
+        <div class="skills-label">Skills detected</div>
+        <div class="skills-wrap">${matchTags}${extraTags}</div>
+      </div>` : ''}
+      ${aiBlock}
+    </div>`;
+  }).join('');
+
+  document.getElementById('results').classList.add('show');
+
+  // Animate bars
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.querySelectorAll('.bar-fill').forEach(el => {
+        el.style.width = el.dataset.w + '%';
+      });
+    }, 200);
+  });
+
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
